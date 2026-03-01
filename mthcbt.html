@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#021a08">
+  <title>OAU MTH CBT • 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <style>
+    /* 
+      ═══ BACKGROUND IMAGE INSTRUCTIONS ═══
+      To set a background image for the entire app, replace the 
+      body background line below with:
+
+      body {
+        background: url('YOUR_IMAGE_PATH_HERE') no-repeat center center fixed;
+        background-size: cover;
+      }
+
+      Examples:
+        Local file:   url('./my-bg.jpg')
+        Online image: url('https://example.com/physics-bg.jpg')
+        Base64:       url('data:image/png;base64,...')
+
+      Then add an overlay div inside #root or use ::before on body:
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 11, 26, 0.85);
+        z-index: 0;
+      }
+      This darkens the image so text stays readable.
+    */
+    body {
+        background: url('mth.jpg') no-repeat center center fixed;
+        background-size: cover;
+    }
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 11, 26, 0.85);
+        z-index: 0;
+      }
+    .glass{background:rgba(3,28,10,.93);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+    .neon-glow{box-shadow:0 0 25px rgba(34,197,94,.5),0 0 50px rgba(34,197,94,.2);transition:all .3s cubic-bezier(.4,0,.2,1)}
+    .neon-glow:hover,.neon-glow:active{box-shadow:0 0 40px rgba(74,222,128,.6),0 0 80px rgba(74,222,128,.3);transform:translateY(-2px)}
+    .green-glow{box-shadow:0 0 25px rgba(250,204,21,.4),0 0 50px rgba(250,204,21,.2)}
+    @keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-35px) rotate(8deg)}}
+    .physics-float{animation:float 7s ease-in-out infinite}
+    .physics-float2{animation:float 10s ease-in-out infinite}
+    .physics-float3{animation:float 6s ease-in-out infinite}
+    .stepper-btn{width:72px;height:72px;font-size:36px;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
+    .option-btn{transition:all .2s ease;user-select:none;-webkit-user-select:none}
+    .option-btn:active{transform:scale(.97)}
+    @keyframes pulse-red{0%,100%{color:#f87171}50%{color:#fecaca}}
+    .timer-warning{animation:pulse-red 1s ease-in-out infinite}
+    @keyframes score-pop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+    .score-pop{animation:score-pop .6s ease-out forwards}
+    ::-webkit-scrollbar{width:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(34,197,94,.4);border-radius:3px}
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield}
+    .diff-btn{transition:all .15s ease}
+    .diff-btn.active{transform:scale(1.05)}
+    .calc-btn{transition:all .1s ease;user-select:none;-webkit-user-select:none}
+    .calc-btn:active{transform:scale(.92)}
+    @keyframes calc-slide{0%{transform:translateY(30px) scale(.95);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+    .calc-pop{animation:calc-slide .2s ease-out forwards}
+    .katex{color:inherit;font-size:1em}
+    .katex-display{margin:0;color:inherit}
+    .katex .mord,.katex .mop,.katex .mbin,.katex .mrel,.katex .mopen,.katex .mclose,.katex .mpunct,.katex .minner{color:inherit}
+    @keyframes lb-slide{0%{transform:translateY(-20px);opacity:0}100%{transform:translateY(0);opacity:1}}
+    .lb-row{animation:lb-slide .3s ease-out forwards}
+    @keyframes rank-pop{0%{transform:scale(0) rotate(-10deg);opacity:0}60%{transform:scale(1.2) rotate(3deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+    .rank-pop{animation:rank-pop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+    .lb-expand{transition:max-height .35s cubic-bezier(.4,0,.2,1),opacity .3s ease}
+    @keyframes quit-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+    .quit-shake{animation:quit-shake .3s ease}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo}=React;
+
+/* ═══════════════ KATEX MATH RENDERER ═══════════════ */
+const Maths=({tex,block=false})=>{
+  const ref=useRef(null);
+  useEffect(()=>{
+    if(ref.current&&window.katex){
+      try{katex.render(tex,ref.current,{throwOnError:false,displayMode:block});}
+      catch(e){ref.current.textContent=tex;}
+    }
+  },[tex,block]);
+  return <span ref={ref}/>;
+};
+const RenderMath=({text})=>{
+  if(!text)return null;
+  const parts=text.split(/(\$[^$]+\$)/g);
+  return(
+    <>
+      {parts.map((part,i)=>
+        part.startsWith('$')&&part.endsWith('$')
+          ?<Maths key={i} tex={part.slice(1,-1)}/>
+          :<span key={i}>{part}</span>
+      )}
+    </>
+  );
+};
+
+/* ═══════════════ QUESTION BANK — 142 MTH101 Questions with KaTeX ═══════════════ */
+const QUESTION_BANK=[
+
+  // ────────────── 1. SET THEORY ──────────────
+  {id:1,topic:"Set Theory",difficulty:"simple",question:"A set with no elements is called a:",options:["Singleton set","Empty set","Universal set","Subset"],correct:1},
+  {id:2,topic:"Set Theory",difficulty:"simple",question:"If $A = \\{1,2,3\\}$ and $B = \\{2,3,4\\}$, then $A \\cap B$ is:",options:["$\\{1,2,3,4\\}$","$\\{2,3\\}$","$\\{1,4\\}$","$\\{1,2,3\\}$"],correct:1},
+  {id:3,topic:"Set Theory",difficulty:"simple",question:"The union $A \\cup B$ contains elements:",options:["In $A$ only","In $B$ only","In $A$ or $B$ or both","In $A$ and $B$ only"],correct:2},
+  {id:4,topic:"Set Theory",difficulty:"simple",question:"If $n(A)=10$, $n(B)=8$, and $n(A \\cap B)=3$, then $n(A \\cup B)=$",options:["21","15","18","11"],correct:1},
+  {id:5,topic:"Set Theory",difficulty:"simple",question:"The complement $A'$ contains elements:",options:["In $A$","Not in $A$","In $A$ and $B$","In neither $A$ nor $B$"],correct:1},
+  {id:6,topic:"Set Theory",difficulty:"medium",question:"If $A \\subset B$, then $A \\cup B$ equals:",options:["$A$","$B$","$A \\cap B$","$\\emptyset$"],correct:1},
+  {id:7,topic:"Set Theory",difficulty:"medium",question:"De Morgan's law: $(A \\cup B)' =$",options:["$A' \\cup B'$","$A' \\cap B'$","$A \\cap B$","$A \\cup B$"],correct:1},
+  {id:8,topic:"Set Theory",difficulty:"medium",question:"In a class of 40 students, 25 study Maths, 20 study Physics, 10 study both. How many study neither?",options:["5","10","15","20"],correct:0},
+  {id:9,topic:"Set Theory",difficulty:"medium",question:"A function $f: A \\to B$ is injective (one-to-one) if:",options:["Every element of $B$ has a preimage","Distinct inputs give distinct outputs","$f(x)=x$ for all $x$","$f$ is onto"],correct:1},
+  {id:10,topic:"Set Theory",difficulty:"medium",question:"A function $f$ is surjective (onto) if:",options:["$f$ is one-to-one","Every element of the codomain has a preimage","$f(x)=x$","Domain equals codomain"],correct:1},
+  {id:11,topic:"Set Theory",difficulty:"hard",question:"If $f(x)=2x+3$ and $g(x)=x^2$, then $f(g(2))=$",options:["11","19","7","25"],correct:1},
+  {id:12,topic:"Set Theory",difficulty:"hard",question:"The inverse of $f(x)=3x-5$ is:",options:["$f^{-1}(x)=\\dfrac{x+5}{3}$","$f^{-1}(x)=3x+5$","$f^{-1}(x)=\\dfrac{x-5}{3}$","$f^{-1}(x)=\\dfrac{1}{3x-5}$"],correct:0},
+  {id:13,topic:"Set Theory",difficulty:"hard",question:"How many subsets does a set with 4 elements have?",options:["8","12","16","4"],correct:2},
+  {id:14,topic:"Set Theory",difficulty:"hard",question:"If $n(A)=20$, $n(B)=15$, $n(C)=10$, $n(A\\cap B)=5$, $n(B\\cap C)=4$, $n(A\\cap C)=3$, $n(A\\cap B\\cap C)=2$, find $n(A\\cup B\\cup C)$:",options:["35","40","55","45"],correct:0},
+
+  // ────────────── 2. INEQUALITIES & QUADRATICS ──────────────
+  {id:15,topic:"Inequalities & Quadratics",difficulty:"simple",question:"Solve: $2x+3 > 7$",options:["$x>2$","$x<2$","$x>5$","$x<5$"],correct:0},
+  {id:16,topic:"Inequalities & Quadratics",difficulty:"simple",question:"The roots of $x^2-5x+6=0$ are:",options:["2 and 3","1 and 6","$-2$ and $-3$","$-1$ and $-6$"],correct:0},
+  {id:17,topic:"Inequalities & Quadratics",difficulty:"simple",question:"The discriminant of $ax^2+bx+c=0$ is:",options:["$b^2-4ac$","$b^2+4ac$","$-\\dfrac{b}{2a}$","$4ac-b^2$"],correct:0},
+  {id:18,topic:"Inequalities & Quadratics",difficulty:"simple",question:"For $ax^2+bx+c=0$, if the discriminant $=0$, the roots are:",options:["Two distinct real roots","Two equal real roots","Complex roots","Irrational roots"],correct:1},
+  {id:19,topic:"Inequalities & Quadratics",difficulty:"medium",question:"Solve: $x^2-x-6<0$",options:["$x<-2$ or $x>3$","$-2<x<3$","$x>3$","$x<-2$"],correct:1},
+  {id:20,topic:"Inequalities & Quadratics",difficulty:"medium",question:"The sum of roots of $3x^2-5x+2=0$ is:",options:["$\\dfrac{5}{3}$","$-\\dfrac{5}{3}$","$\\dfrac{2}{3}$","$-\\dfrac{2}{3}$"],correct:0},
+  {id:21,topic:"Inequalities & Quadratics",difficulty:"medium",question:"The product of roots of $2x^2+7x-4=0$ is:",options:["$\\dfrac{7}{2}$","$-2$","$-\\dfrac{7}{2}$","$4$"],correct:1},
+  {id:22,topic:"Inequalities & Quadratics",difficulty:"medium",question:"Which quadratic has roots $3$ and $-4$?",options:["$x^2+x-12$","$x^2-x-12$","$x^2+x+12$","$x^2-x+12$"],correct:0},
+  {id:23,topic:"Inequalities & Quadratics",difficulty:"hard",question:"The minimum value of $f(x)=2x^2-8x+5$ is:",options:["$-3$","$-5$","$-2$","$1$"],correct:0},
+  {id:24,topic:"Inequalities & Quadratics",difficulty:"hard",question:"Solve: $|2x-3| \\leq 5$",options:["$-1 \\leq x \\leq 4$","$x \\leq -1$ or $x \\geq 4$","$-1 \\leq x \\leq 5$","$0 \\leq x \\leq 4$"],correct:0},
+  {id:25,topic:"Inequalities & Quadratics",difficulty:"hard",question:"For $f(x)=x^2-4x+k$ to have no real roots, $k$ must satisfy:",options:["$k>4$","$k<4$","$k=4$","$k \\geq 4$"],correct:0},
+
+  // ────────────── 3. REAL NUMBERS ──────────────
+  {id:26,topic:"Real Numbers",difficulty:"simple",question:"The set of natural numbers $\\mathbb{N}$ includes:",options:["Negative integers","Zero and positive integers","Positive integers only","All integers"],correct:1},
+  {id:27,topic:"Real Numbers",difficulty:"simple",question:"Which of these is an irrational number?",options:["$0.333...$","$\\sqrt{4}$","$\\sqrt{2}$","$\\dfrac{22}{7}$"],correct:2},
+  {id:28,topic:"Real Numbers",difficulty:"simple",question:"The absolute value $|-7|$ is:",options:["$-7$","$7$","$0$","$49$"],correct:1},
+  {id:29,topic:"Real Numbers",difficulty:"simple",question:"The additive identity for real numbers is:",options:["$1$","$-1$","$0$","$\\infty$"],correct:2},
+  {id:30,topic:"Real Numbers",difficulty:"simple",question:"The multiplicative inverse of $4$ is:",options:["$-4$","$4$","$\\dfrac{1}{4}$","$0$"],correct:2},
+  {id:31,topic:"Real Numbers",difficulty:"medium",question:"Which property justifies $a(b+c)=ab+ac$?",options:["Commutative","Associative","Distributive","Identity"],correct:2},
+  {id:32,topic:"Real Numbers",difficulty:"medium",question:"Evaluate: $(-3)^2 \\times (-2)^3$",options:["$-72$","$-54$","$72$","$54$"],correct:0},
+  {id:33,topic:"Real Numbers",difficulty:"medium",question:"The LCM of $12$ and $18$ is:",options:["$6$","$24$","$36$","$72$"],correct:2},
+  {id:34,topic:"Real Numbers",difficulty:"medium",question:"Which of the following is a rational number?",options:["$\\pi$","$e$","$\\sqrt{3}$","$0.75$"],correct:3},
+  {id:35,topic:"Real Numbers",difficulty:"hard",question:"If $a=2+\\sqrt{3}$, find $\\dfrac{1}{a}$ in simplified form:",options:["$2-\\sqrt{3}$","$2+\\sqrt{3}$","$\\dfrac{1}{2-\\sqrt{3}}$","$-(2+\\sqrt{3})$"],correct:0},
+  {id:36,topic:"Real Numbers",difficulty:"hard",question:"Solve: $|x+2|=|x-3|$",options:["$x=\\dfrac{1}{2}$","$x=-\\dfrac{1}{2}$","$x=\\dfrac{5}{2}$","$x=1$"],correct:0},
+
+  // ────────────── 4. SURDS ──────────────
+  {id:37,topic:"Surds",difficulty:"simple",question:"Simplify $\\sqrt{48}$",options:["$4\\sqrt{3}$","$6\\sqrt{2}$","$3\\sqrt{4}$","$8\\sqrt{3}$"],correct:0},
+  {id:38,topic:"Surds",difficulty:"simple",question:"$\\sqrt{2} \\times \\sqrt{8}=$",options:["$4$","$2\\sqrt{2}$","$\\sqrt{16}$","$\\sqrt{10}$"],correct:0},
+  {id:39,topic:"Surds",difficulty:"simple",question:"Rationalize: $\\dfrac{1}{\\sqrt{3}}$",options:["$\\sqrt{3}$","$\\dfrac{\\sqrt{3}}{3}$","$\\dfrac{3}{\\sqrt{3}}$","$\\dfrac{1}{3}$"],correct:1},
+  {id:40,topic:"Surds",difficulty:"simple",question:"Simplify: $\\sqrt{75}-\\sqrt{27}$",options:["$\\sqrt{3}$","$2\\sqrt{3}$","$3\\sqrt{3}$","$4\\sqrt{3}$"],correct:1},
+  {id:41,topic:"Surds",difficulty:"medium",question:"Rationalize: $\\dfrac{1}{2+\\sqrt{3}}$",options:["$2+\\sqrt{3}$","$2-\\sqrt{3}$","$\\dfrac{1}{2-\\sqrt{3}}$","$-(2-\\sqrt{3})$"],correct:1},
+  {id:42,topic:"Surds",difficulty:"medium",question:"Simplify: $(\\sqrt{5}+\\sqrt{3})(\\sqrt{5}-\\sqrt{3})$",options:["$2$","$4$","$8$","$10$"],correct:0},
+  {id:43,topic:"Surds",difficulty:"medium",question:"Express $\\sqrt{\\dfrac{12}{3}}$ in simplest form:",options:["$4$","$2$","$\\sqrt{4}$","$2\\sqrt{3}$"],correct:1},
+  {id:44,topic:"Surds",difficulty:"hard",question:"If $x=3+\\sqrt{5}$, find $x^2-6x$:",options:["$4$","$-4$","$5$","$-5$"],correct:0},
+  {id:45,topic:"Surds",difficulty:"hard",question:"Simplify: $(2\\sqrt{3}+\\sqrt{2})^2$",options:["$14+4\\sqrt{6}$","$14$","$10+4\\sqrt{6}$","$12+4\\sqrt{6}$"],correct:0},
+
+  // ────────────── 5. COMPLEX NUMBERS ──────────────
+  {id:46,topic:"Complex Numbers",difficulty:"simple",question:"The imaginary unit $i$ is defined as:",options:["$\\sqrt{1}$","$\\sqrt{-1}$","$-1$","$\\dfrac{1}{\\sqrt{-1}}$"],correct:1},
+  {id:47,topic:"Complex Numbers",difficulty:"simple",question:"The real part of $4+3i$ is:",options:["$3$","$4$","$7$","$i$"],correct:1},
+  {id:48,topic:"Complex Numbers",difficulty:"simple",question:"The modulus of $3+4i$ is:",options:["$7$","$1$","$5$","$25$"],correct:2},
+  {id:49,topic:"Complex Numbers",difficulty:"simple",question:"The conjugate of $5-2i$ is:",options:["$5+2i$","$-5+2i$","$-5-2i$","$2-5i$"],correct:0},
+  {id:50,topic:"Complex Numbers",difficulty:"medium",question:"Compute $i^4=$",options:["$-1$","$i$","$-i$","$1$"],correct:3},
+  {id:51,topic:"Complex Numbers",difficulty:"medium",question:"$(2+3i)(1-i)=$",options:["$5+i$","$-1+5i$","$5-i$","$2-3i$"],correct:0},
+  {id:52,topic:"Complex Numbers",difficulty:"medium",question:"The argument of $-1+i$ is:",options:["$\\dfrac{\\pi}{4}$","$\\dfrac{3\\pi}{4}$","$-\\dfrac{\\pi}{4}$","$\\dfrac{\\pi}{2}$"],correct:1},
+  {id:53,topic:"Complex Numbers",difficulty:"medium",question:"Simplify $\\dfrac{1+2i}{1-i}$:",options:["$-\\dfrac{1}{2}+\\dfrac{3i}{2}$","$-1+3i$","$\\dfrac{3}{2}+\\dfrac{i}{2}$","$-\\dfrac{3}{2}+\\dfrac{i}{2}$"],correct:0},
+  {id:54,topic:"Complex Numbers",difficulty:"hard",question:"If $z=r(\\cos\\theta+i\\sin\\theta)$, then $z^2$ in polar form is:",options:["$r^2(\\cos 2\\theta+i\\sin 2\\theta)$","$r(\\cos 2\\theta+i\\sin 2\\theta)$","$2r(\\cos\\theta+i\\sin\\theta)$","$r^2(\\cos\\theta+i\\sin\\theta)^2$"],correct:0},
+  {id:55,topic:"Complex Numbers",difficulty:"hard",question:"The square roots of $i$ are:",options:["$\\pm\\dfrac{1+i}{\\sqrt{2}}$","$\\pm\\dfrac{1-i}{\\sqrt{2}}$","$\\pm i$","$\\pm 1$"],correct:0},
+  {id:56,topic:"Complex Numbers",difficulty:"hard",question:"If $|z_1|=2$ and $|z_2|=3$, then $|z_1 z_2|=$",options:["$5$","$6$","$1$","$\\sqrt{13}$"],correct:1},
+
+  // ────────────── 6. REMAINDER & FACTOR THEOREMS ──────────────
+  {id:57,topic:"Remainder & Factor Theorems",difficulty:"simple",question:"When $f(x)$ is divided by $(x-a)$, the remainder is:",options:["$f(0)$","$f(a)$","$f(-a)$","$f'(a)$"],correct:1},
+  {id:58,topic:"Remainder & Factor Theorems",difficulty:"simple",question:"$(x-a)$ is a factor of $f(x)$ if:",options:["$f(a)=1$","$f(a)=0$","$f(0)=a$","$f'(a)=0$"],correct:1},
+  {id:59,topic:"Remainder & Factor Theorems",difficulty:"simple",question:"The remainder when $x^2+3x+2$ is divided by $(x-1)$ is:",options:["$0$","$6$","$2$","$4$"],correct:1},
+  {id:60,topic:"Remainder & Factor Theorems",difficulty:"medium",question:"If $(x-2)$ is a factor of $x^3-kx+4$, find $k$:",options:["$2$","$4$","$6$","$8$"],correct:2},
+  {id:61,topic:"Remainder & Factor Theorems",difficulty:"medium",question:"The remainder when $2x^3-3x^2+x-5$ is divided by $(x+1)$ is:",options:["$-11$","$-9$","$9$","$11$"],correct:0},
+  {id:62,topic:"Remainder & Factor Theorems",difficulty:"medium",question:"Which is a factor of $x^3-6x^2+11x-6$?",options:["$x-4$","$x+1$","$x-1$","$x-3$"],correct:2},
+  {id:63,topic:"Remainder & Factor Theorems",difficulty:"hard",question:"Factorize $x^3-7x+6$ completely:",options:["$(x-1)(x-2)(x+3)$","$(x+1)(x-2)(x-3)$","$(x-1)(x+2)(x+3)$","$(x-1)(x-2)(x+4)$"],correct:0},
+  {id:64,topic:"Remainder & Factor Theorems",difficulty:"hard",question:"How many real roots does $x^4-1=0$ have?",options:["$1$","$2$","$3$","$4$"],correct:1},
+
+  // ────────────── 7. PARTIAL FRACTIONS ──────────────
+  {id:65,topic:"Partial Fractions",difficulty:"simple",question:"Partial fraction decomposition splits a rational function into:",options:["Products","Simpler fractions","Derivatives","Integrals"],correct:1},
+  {id:66,topic:"Partial Fractions",difficulty:"simple",question:"The partial fraction form of $\\dfrac{1}{(x+1)(x+2)}$ is:",options:["$\\dfrac{A}{x+1}+\\dfrac{B}{x+2}$","$\\dfrac{A}{(x+1)(x+2)}$","$Ax+B$","$A+\\dfrac{B}{x+2}$"],correct:0},
+  {id:67,topic:"Partial Fractions",difficulty:"medium",question:"Decompose $\\dfrac{3x+1}{(x+1)(x-1)}=\\dfrac{A}{x+1}+\\dfrac{B}{x-1}$. Find $A$:",options:["$A=-1$","$A=1$","$A=2$","$A=-2$"],correct:0},
+  {id:68,topic:"Partial Fractions",difficulty:"medium",question:"The partial fraction form of $\\dfrac{2x+5}{(x+1)^2}$ is:",options:["$\\dfrac{A}{x+1}+\\dfrac{B}{(x+1)^2}$","$\\dfrac{A}{(x+1)^2}$","$\\dfrac{Ax+B}{x+1}$","$A(x+1)+B$"],correct:0},
+  {id:69,topic:"Partial Fractions",difficulty:"medium",question:"For $\\dfrac{5}{(x-2)(x+3)}=\\dfrac{A}{x-2}+\\dfrac{B}{x+3}$, find $A$:",options:["$A=1$","$A=2$","$A=5$","$A=-1$"],correct:0},
+  {id:70,topic:"Partial Fractions",difficulty:"hard",question:"If $\\dfrac{7x-3}{(x+1)(x-3)}=\\dfrac{A}{x+1}+\\dfrac{B}{x-3}$, find $A+B$:",options:["$7$","$5$","$3$","$2$"],correct:0},
+  {id:71,topic:"Partial Fractions",difficulty:"hard",question:"The partial fraction form of $\\dfrac{x^2+1}{(x+1)(x^2+x+1)}$ is:",options:["$\\dfrac{A}{x+1}+\\dfrac{Bx+C}{x^2+x+1}$","$\\dfrac{A}{x+1}+\\dfrac{B}{x^2+x+1}$","$Ax+B+\\dfrac{C}{x+1}$","$\\dfrac{A}{(x+1)^2}$"],correct:0},
+
+  // ────────────── 8. INDICES & LOGARITHMS ──────────────
+  {id:72,topic:"Indices & Logarithms",difficulty:"simple",question:"Evaluate: $2^0=$",options:["$0$","$2$","$1$","$-1$"],correct:2},
+  {id:73,topic:"Indices & Logarithms",difficulty:"simple",question:"Simplify: $x^3 \\times x^4=$",options:["$x^{12}$","$x^7$","$x$","$x^{-1}$"],correct:1},
+  {id:74,topic:"Indices & Logarithms",difficulty:"simple",question:"$\\log_{10}(100)=$",options:["$1$","$2$","$10$","$100$"],correct:1},
+  {id:75,topic:"Indices & Logarithms",difficulty:"simple",question:"$\\log_a(a)=$",options:["$0$","$a$","$1$","$-1$"],correct:2},
+  {id:76,topic:"Indices & Logarithms",difficulty:"medium",question:"Simplify: $\\dfrac{x^2 y^3}{xy^2}=$",options:["$xy$","$xy^2$","$x^2y$","$\\dfrac{x}{y}$"],correct:0},
+  {id:77,topic:"Indices & Logarithms",difficulty:"medium",question:"Evaluate: $\\log_2(32)=$",options:["$4$","$5$","$6$","$8$"],correct:1},
+  {id:78,topic:"Indices & Logarithms",difficulty:"medium",question:"$\\log(a)+\\log(b)=$",options:["$\\log(a+b)$","$\\log(ab)$","$\\log\\left(\\dfrac{a}{b}\\right)$","$a\\cdot\\log(b)$"],correct:1},
+  {id:79,topic:"Indices & Logarithms",difficulty:"medium",question:"Solve: $3^x=27$",options:["$x=2$","$x=3$","$x=4$","$x=9$"],correct:1},
+  {id:80,topic:"Indices & Logarithms",difficulty:"medium",question:"If $\\log_2(x)=5$, then $x=$",options:["$10$","$25$","$32$","$64$"],correct:2},
+  {id:81,topic:"Indices & Logarithms",difficulty:"hard",question:"Solve: $2^{2x}-5\\cdot 2^x+4=0$",options:["$x=0$ and $x=2$","$x=1$ and $x=2$","$x=0$ and $x=1$","$x=2$ and $x=3$"],correct:2},
+  {id:82,topic:"Indices & Logarithms",difficulty:"hard",question:"Simplify: $\\dfrac{\\log 8}{\\log 2}=$",options:["$4$","$3$","$2$","$6$"],correct:1},
+  {id:83,topic:"Indices & Logarithms",difficulty:"hard",question:"Solve: $\\log_3(x-1)+\\log_3(x+1)=2$",options:["$x=\\sqrt{10}$","$x=\\sqrt{10}$ only (positive)","$x=\\pm\\sqrt{10}$","$x=10$"],correct:1},
+
+  // ────────────── 9. SEQUENCES & SERIES ──────────────
+  {id:84,topic:"Sequences & Series",difficulty:"simple",question:"In an AP with first term $3$ and common difference $4$, the 5th term is:",options:["$19$","$23$","$15$","$16$"],correct:0},
+  {id:85,topic:"Sequences & Series",difficulty:"simple",question:"The $n$th term of a GP with first term $a$ and ratio $r$ is:",options:["$a+(n-1)r$","$a \\cdot r^n$","$a \\cdot r^{n-1}$","$a+nr$"],correct:2},
+  {id:86,topic:"Sequences & Series",difficulty:"simple",question:"The sum of the first $n$ terms of an AP is:",options:["$\\dfrac{n}{2}(a+l)$","$n(a+l)$","$\\dfrac{a(r^n-1)}{r-1}$","$na$"],correct:0},
+  {id:87,topic:"Sequences & Series",difficulty:"simple",question:"Find the 10th term of the AP: $2, 5, 8, \\ldots$",options:["$29$","$26$","$32$","$23$"],correct:0},
+  {id:88,topic:"Sequences & Series",difficulty:"medium",question:"The sum to infinity of a GP with $a=4$ and $r=\\dfrac{1}{2}$ is:",options:["$4$","$8$","$2$","$6$"],correct:1},
+  {id:89,topic:"Sequences & Series",difficulty:"medium",question:"For the GP $3, 6, 12, \\ldots$ find the sum of the first 5 terms:",options:["$93$","$96$","$48$","$63$"],correct:0},
+  {id:90,topic:"Sequences & Series",difficulty:"medium",question:"In an AP, the 3rd term is $10$ and 7th term is $22$. Find $d$:",options:["$2$","$3$","$4$","$5$"],correct:1},
+  {id:91,topic:"Sequences & Series",difficulty:"hard",question:"The sum of the first 20 terms of $3+5+7+\\ldots$ is:",options:["$440$","$420$","$400$","$460$"],correct:0},
+  {id:92,topic:"Sequences & Series",difficulty:"hard",question:"Insert 3 geometric means between $2$ and $162$. The first GM is:",options:["$6$","$9$","$18$","$12$"],correct:0},
+  {id:93,topic:"Sequences & Series",difficulty:"hard",question:"The sum of an infinite GP is $12$ and first term is $4$. Find the common ratio:",options:["$\\dfrac{1}{3}$","$\\dfrac{2}{3}$","$\\dfrac{1}{4}$","$\\dfrac{1}{2}$"],correct:1},
+
+  // ────────────── 10. MATHEMATICAL INDUCTION ──────────────
+  {id:94,topic:"Mathematical Induction",difficulty:"simple",question:"Mathematical induction proves statements about:",options:["Real numbers only","Positive integers","Polynomials","Complex numbers"],correct:1},
+  {id:95,topic:"Mathematical Induction",difficulty:"simple",question:"The first step in proof by induction is to show the statement holds for:",options:["$n=0$ or $n=1$","$n=2$","All $n$","$n\\to\\infty$"],correct:0},
+  {id:96,topic:"Mathematical Induction",difficulty:"medium",question:"The inductive step assumes the statement for $n=k$ and proves it for:",options:["$n=k-1$","$n=k+1$","$n=2k$","$n=k^2$"],correct:1},
+  {id:97,topic:"Mathematical Induction",difficulty:"medium",question:"By induction, $1+2+3+\\cdots+n=$",options:["$\\dfrac{n(n+1)}{2}$","$n^2$","$n(n+1)$","$\\dfrac{n(n-1)}{2}$"],correct:0},
+  {id:98,topic:"Mathematical Induction",difficulty:"medium",question:"Using $\\displaystyle\\sum_{k=1}^n k^2=\\dfrac{n(n+1)(2n+1)}{6}$, evaluate for $n=3$:",options:["$9$","$14$","$12$","$16$"],correct:1},
+  {id:99,topic:"Mathematical Induction",difficulty:"hard",question:"$2^n > n^2$ holds for all $n \\geq$ __ :",options:["$3$","$4$","$5$","$6$"],correct:2},
+  {id:100,topic:"Mathematical Induction",difficulty:"hard",question:"By induction, $1+3+5+\\cdots+(2n-1)=$",options:["$\\dfrac{n(n+1)}{2}$","$n^2$","$2n-1$","$n(2n-1)$"],correct:1},
+
+  // ────────────── 11. PERMUTATION & COMBINATION ──────────────
+  {id:101,topic:"Permutation & Combination",difficulty:"simple",question:"The number of ways to arrange 4 distinct objects in a line is:",options:["$4$","$12$","$24$","$16$"],correct:2},
+  {id:102,topic:"Permutation & Combination",difficulty:"simple",question:"$^nC_r$ counts the number of ways to:",options:["Arrange $r$ objects from $n$","Choose $r$ objects from $n$ without regard to order","Choose $r$ objects with order","Arrange $n$ objects"],correct:1},
+  {id:103,topic:"Permutation & Combination",difficulty:"simple",question:"Evaluate: $5!=$",options:["$25$","$60$","$120$","$150$"],correct:2},
+  {id:104,topic:"Permutation & Combination",difficulty:"simple",question:"$^5C_2=$",options:["$20$","$10$","$5$","$15$"],correct:1},
+  {id:105,topic:"Permutation & Combination",difficulty:"medium",question:"In how many ways can 3 people be selected from a group of 7?",options:["$21$","$35$","$42$","$210$"],correct:1},
+  {id:106,topic:"Permutation & Combination",difficulty:"medium",question:"How many 3-letter arrangements can be made from the word MATH?",options:["$12$","$24$","$4$","$6$"],correct:1},
+  {id:107,topic:"Permutation & Combination",difficulty:"medium",question:"$^8P_3=$",options:["$336$","$56$","$512$","$24$"],correct:0},
+  {id:108,topic:"Permutation & Combination",difficulty:"hard",question:"In how many ways can 5 boys and 3 girls sit in a row if the girls must sit together?",options:["$4320$","$720$","$6!\\times 3!$","$8!$"],correct:0},
+  {id:109,topic:"Permutation & Combination",difficulty:"hard",question:"A committee of 3 men and 2 women is formed from 6 men and 5 women. The number of ways is:",options:["$150$","$200$","$100$","$120$"],correct:1},
+
+  // ────────────── 12. BINOMIAL THEOREM ──────────────
+  {id:110,topic:"Binomial Theorem",difficulty:"simple",question:"The expansion of $(a+b)^n$ has how many terms?",options:["$n$","$n-1$","$n+1$","$2n$"],correct:2},
+  {id:111,topic:"Binomial Theorem",difficulty:"simple",question:"The general term in the expansion of $(a+b)^n$ is:",options:["$^nC_r\\, a^{n-r}\\, b^r$","$^nC_r\\, a^r\\, b^{n-r}$","$n!\\, a^{n-r}\\, b^r$","$^nC_r\\, a^n\\, b^r$"],correct:0},
+  {id:112,topic:"Binomial Theorem",difficulty:"simple",question:"In the expansion of $(1+x)^3$, the coefficient of $x^2$ is:",options:["$1$","$2$","$3$","$6$"],correct:2},
+  {id:113,topic:"Binomial Theorem",difficulty:"medium",question:"The 4th term in the expansion of $(2+x)^5$ is:",options:["$80x^2$","$80x^3$","$40x^3$","$160x^2$"],correct:1},
+  {id:114,topic:"Binomial Theorem",difficulty:"medium",question:"In $(1+x)^{10}$, the coefficient of $x^3$ is:",options:["$120$","$210$","$45$","$90$"],correct:0},
+  {id:115,topic:"Binomial Theorem",difficulty:"medium",question:"The middle term in the expansion of $\\left(x+\\dfrac{1}{x}\\right)^6$ is:",options:["$15$","$20$","$10$","$6$"],correct:1},
+  {id:116,topic:"Binomial Theorem",difficulty:"hard",question:"The term independent of $x$ in $\\left(x+\\dfrac{1}{x^2}\\right)^9$ is:",options:["$84$","$126$","$36$","$252$"],correct:1},
+  {id:117,topic:"Binomial Theorem",difficulty:"hard",question:"The coefficient of $x^4$ in $(1+2x)^7$ is:",options:["$280$","$140$","$560$","$70$"],correct:0},
+
+  // ────────────── 13. MATRICES & DETERMINANTS ──────────────
+  {id:118,topic:"Matrices & Determinants",difficulty:"simple",question:"A matrix with equal numbers of rows and columns is called a:",options:["Row matrix","Square matrix","Column matrix","Zero matrix"],correct:1},
+  {id:119,topic:"Matrices & Determinants",difficulty:"simple",question:"The transpose $A^T$ is obtained by:",options:["Multiplying entries by $-1$","Swapping rows and columns","Replacing entries with reciprocals","Negating the diagonal"],correct:1},
+  {id:120,topic:"Matrices & Determinants",difficulty:"simple",question:"The determinant of $\\begin{pmatrix}2&3\\\\1&4\\end{pmatrix}$ is:",options:["$5$","$11$","$8$","$-5$"],correct:0},
+  {id:121,topic:"Matrices & Determinants",difficulty:"simple",question:"The identity matrix $I$ satisfies:",options:["$AI=0$","$AI=A$","$AI=I$","$IA=0$"],correct:1},
+  {id:122,topic:"Matrices & Determinants",difficulty:"medium",question:"If $A=\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}$, then $\\det(A)=$",options:["$-2$","$2$","$10$","$-10$"],correct:0},
+  {id:123,topic:"Matrices & Determinants",difficulty:"medium",question:"A matrix $A$ is singular if:",options:["$\\det(A)\\neq 0$","$\\det(A)=0$","$A=I$","$A$ is square"],correct:1},
+  {id:124,topic:"Matrices & Determinants",difficulty:"medium",question:"If $A=\\begin{pmatrix}2&1\\\\5&3\\end{pmatrix}$, find $A^{-1}$:",options:["$\\begin{pmatrix}3&-1\\\\-5&2\\end{pmatrix}$","$\\begin{pmatrix}3&1\\\\5&2\\end{pmatrix}$","$\\begin{pmatrix}-3&1\\\\5&-2\\end{pmatrix}$","$\\begin{pmatrix}2&-1\\\\-5&3\\end{pmatrix}$"],correct:0},
+  {id:125,topic:"Matrices & Determinants",difficulty:"medium",question:"If $A$ is $2\\times 3$ and $B$ is $3\\times 4$, the order of $AB$ is:",options:["$3\\times 3$","$2\\times 4$","$4\\times 2$","$3\\times 4$"],correct:1},
+  {id:126,topic:"Matrices & Determinants",difficulty:"hard",question:"Using Cramer's rule, solve: $x+y=3$, $2x-y=0$. Find $x$:",options:["$1$","$2$","$3$","$0$"],correct:0},
+  {id:127,topic:"Matrices & Determinants",difficulty:"hard",question:"The eigenvalues of $\\begin{pmatrix}3&1\\\\0&2\\end{pmatrix}$ are:",options:["$2$ and $3$","$1$ and $2$","$3$ and $0$","$1$ and $3$"],correct:0},
+  {id:128,topic:"Matrices & Determinants",difficulty:"hard",question:"If $A$ is a $3\\times 3$ matrix, then $\\det(3A)=$",options:["$3\\det(A)$","$9\\det(A)$","$27\\det(A)$","$6\\det(A)$"],correct:2},
+
+  // ────────────── 14. TRIGONOMETRY ──────────────
+  {id:129,topic:"Trigonometry",difficulty:"simple",question:"$\\sin(90°)=$",options:["$0$","$1$","$\\dfrac{\\sqrt{2}}{2}$","$\\dfrac{1}{2}$"],correct:1},
+  {id:130,topic:"Trigonometry",difficulty:"simple",question:"$\\cos(0°)=$",options:["$0$","$-1$","$1$","undefined"],correct:2},
+  {id:131,topic:"Trigonometry",difficulty:"simple",question:"$\\tan(45°)=$",options:["$0$","$\\sqrt{3}$","$1$","$\\dfrac{1}{\\sqrt{3}}$"],correct:2},
+  {id:132,topic:"Trigonometry",difficulty:"simple",question:"The identity $\\sin^2\\theta+\\cos^2\\theta=$",options:["$0$","$2$","$1$","$\\sin(2\\theta)$"],correct:2},
+  {id:133,topic:"Trigonometry",difficulty:"simple",question:"Convert $180°$ to radians:",options:["$\\dfrac{\\pi}{2}$","$2\\pi$","$\\pi$","$\\dfrac{3\\pi}{2}$"],correct:2},
+  {id:134,topic:"Trigonometry",difficulty:"medium",question:"$\\sin(A+B)=$",options:["$\\sin A+\\sin B$","$\\sin A\\cos B+\\cos A\\sin B$","$\\sin A\\cos B-\\cos A\\sin B$","$\\cos A\\cos B-\\sin A\\sin B$"],correct:1},
+  {id:135,topic:"Trigonometry",difficulty:"medium",question:"$\\sin(60°)=$",options:["$\\dfrac{1}{2}$","$\\dfrac{\\sqrt{3}}{2}$","$\\dfrac{\\sqrt{2}}{2}$","$\\sqrt{3}$"],correct:1},
+  {id:136,topic:"Trigonometry",difficulty:"medium",question:"$1+\\tan^2\\theta=$",options:["$\\sec^2\\theta$","$\\csc^2\\theta$","$\\cot^2\\theta$","$1$"],correct:0},
+  {id:137,topic:"Trigonometry",difficulty:"medium",question:"The general solution of $\\sin\\theta=0$ is:",options:["$\\theta=n\\pi$","$\\theta=2n\\pi$","$\\theta=\\dfrac{(2n+1)\\pi}{2}$","$\\theta=\\dfrac{n\\pi}{2}$"],correct:0},
+  {id:138,topic:"Trigonometry",difficulty:"medium",question:"$\\cos(2\\theta)$ expressed in terms of $\\cos\\theta$ only is:",options:["$2\\cos^2\\theta$","$2\\cos^2\\theta-1$","$1-2\\cos^2\\theta$","$\\cos^2\\theta-1$"],correct:1},
+  {id:139,topic:"Trigonometry",difficulty:"hard",question:"Solve $2\\sin^2 x-\\sin x-1=0$ for $0\\leq x\\leq 2\\pi$:",options:["$x=\\dfrac{\\pi}{2},\\dfrac{7\\pi}{6},\\dfrac{11\\pi}{6}$","$x=\\dfrac{\\pi}{6},\\dfrac{5\\pi}{6}$","$x=\\dfrac{\\pi}{3},\\dfrac{2\\pi}{3}$","$x=\\dfrac{\\pi}{2},\\pi$"],correct:0},
+  {id:140,topic:"Trigonometry",difficulty:"hard",question:"The exact value of $\\sin(75°)$ is:",options:["$\\dfrac{\\sqrt{6}+\\sqrt{2}}{4}$","$\\dfrac{\\sqrt{6}-\\sqrt{2}}{4}$","$\\dfrac{\\sqrt{3}+1}{2\\sqrt{2}}$","$\\dfrac{\\sqrt{6}}{4}$"],correct:0},
+  {id:141,topic:"Trigonometry",difficulty:"hard",question:"The cosine rule states: $a^2=$",options:["$b^2+c^2-2bc\\cos A$","$b\\cos C+c\\cos B$","$\\dfrac{a}{\\sin A}=\\dfrac{b}{\\sin B}$","$b^2+c^2+2bc\\cos A$"],correct:0},
+  {id:142,topic:"Trigonometry",difficulty:"hard",question:"Find the period of $y=3\\sin\\left(2x+\\dfrac{\\pi}{4}\\right)$:",options:["$2\\pi$","$\\pi$","$\\dfrac{\\pi}{2}$","$4\\pi$"],correct:1},
+];
+
+/* ═══════════════ UTILITIES ═══════════════ */
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function formatTime(s){
+  const m=Math.floor(s/60),sec=s%60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+function getGrade(pct){
+  if(pct>=70)return{grade:'A',label:'Excellent',emoji:'🏆'};
+  if(pct>=60)return{grade:'B',label:'Very Good',emoji:'🌟'};
+  if(pct>=50)return{grade:'C',label:'Good',emoji:'👍'};
+  if(pct>=45)return{grade:'D',label:'Fair',emoji:'📝'};
+  return{grade:'F',label:'Needs Improvement',emoji:'📚'};
+}
+
+/* ═══════════════ MINI CALCULATOR ═══════════════ */
+const Calculator=({onClose})=>{
+  const [display,setDisplay]=useState('0');
+  const [expr,setExpr]=useState('');
+  const [justEvaled,setJustEvaled]=useState(false);
+
+  const press=(val)=>{
+  if(val==='C'){setDisplay('0');setExpr('');setJustEvaled(false);return;}
+  if(val==='⌫'){
+    if(justEvaled){setDisplay('0');setExpr('');setJustEvaled(false);return;}
+    const nd=display.length>1?display.slice(0,-1):'0';
+    setDisplay(nd);
+    setExpr(e=>e.slice(0,-1));
+    return;
+  }
+  if(val==='='){
+    try{
+      const raw=expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/π/g,'Math.PI').replace(/√\(/g,'Math.sqrt(');
+      const result=Function('"use strict";return ('+raw+')')();
+      const res=isFinite(result)?parseFloat(result.toFixed(10)).toString():'Error';
+      setDisplay(res);setExpr(res);setJustEvaled(true);
+    }catch{setDisplay('Error');setExpr('');setJustEvaled(true);}
+    return;
+  }
+
+  // ✅ THE FIX: if display is just '0', treat it as empty
+  const base = (display==='0'||justEvaled) ? '' : display;
+  const baseExpr = (expr==='0'||justEvaled) ? '' : expr;
+
+  if (val === '√') {
+  // Auto-wraps whatever is already typed, or waits for input
+    if (base !== '') {
+    // Wrap existing number in sqrt
+      setExpr('Math.sqrt(' + baseExpr + ')');
+      setDisplay('√(' + base + ')');
+    } else {
+      setExpr(baseExpr + 'Math.sqrt(');
+      setDisplay(base + '√(');
+    } 
+    setJustEvaled(false);
+    return;
+  }
+  if(val==='π'){
+    setExpr(baseExpr+'Math.PI');
+    setDisplay(base+'π');
+    setJustEvaled(false);
+    return;
+  }
+  if(val==='( )'){
+    const open=(baseExpr.match(/\(/g)||[]).length;
+    const close=(baseExpr.match(/\)/g)||[]).length;
+    const bracket=open>close?')':'(';
+    setExpr(baseExpr+bracket);
+    setDisplay(base+bracket);
+    setJustEvaled(false);
+    return;
+  }
+  if(justEvaled&&!['+','-','×','÷','%'].includes(val)){
+    setDisplay(val);setExpr(val);setJustEvaled(false);
+    return;
+  }
+  // For digits: if display is '0' and pressing a digit, replace the 0
+  const newExpr = (display==='0'&&!isNaN(val)) ? val : baseExpr+val;
+  const newDisp = (display==='0'&&!isNaN(val)) ? val : base+val;
+  setExpr(newExpr);setDisplay(newDisp);setJustEvaled(false);
+};
+
+  const rows=[
+    ['C','( )','%','÷'],
+    ['7','8','9','×'],
+    ['4','5','6','-'],
+    ['1','2','3','+'],
+    ['√','0','.','='],
+  ];
+
+  const btnStyle=(v)=>{
+    if(v==='=') return 'bg-gradient-to-br from-green-500 to-green-600 text-white font-black text-2xl';
+    if(['÷','×','-','+'].includes(v)) return 'bg-blue-600/80 text-white font-bold text-xl';
+    if(v==='C') return 'bg-red-500/80 text-white font-bold';
+    if(['√','π','( )','%'].includes(v)) return 'bg-yellow-500/30 text-yellow-300 font-bold';
+    if(v==='⌫') return 'bg-orange-500/40 text-orange-300 font-bold';
+    return 'bg-slate-700/80 text-white font-semibold';
+  };
+
+  return(
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-3 pb-3 sm:pb-0" onClick={onClose}>
+      <div className="calc-pop glass border border-green-400/30 rounded-3xl p-4 w-full max-w-xs shadow-2xl" onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-green-400 font-bold text-lg">🧮 Calculator</span>
+          <button onClick={onClose} className="text-white/50 text-2xl hover:text-white px-1">✕</button>
+        </div>
+        {/* Display */}
+        <div className="glass rounded-2xl px-4 py-3 mb-3 text-right border border-green-400/20 min-h-[56px]">
+          <p className="text-white/50 text-xs truncate h-4">{expr||' '}</p>
+          <p className="text-white text-3xl font-bold truncate">{display}</p>
+        </div>
+        {/* Buttons */}
+        <div className="grid grid-cols-4 gap-2">
+          {rows.flat().map((v,i)=>(
+            <button key={i} onClick={()=>press(v)}
+              className={`calc-btn h-14 rounded-2xl text-lg ${btnStyle(v)} active:scale-90 shadow-md`}>
+              {v}
+            </button>
+          ))}
+          {/* Extra row: π and backspace spanning */}
+          <button onClick={()=>press('π')} className={`calc-btn h-14 rounded-2xl text-lg col-span-2 bg-yellow-500/30 text-yellow-300 font-bold active:scale-90 shadow-md`}>π</button>
+          <button onClick={()=>press('⌫')} className={`calc-btn h-14 rounded-2xl text-lg col-span-2 bg-orange-500/40 text-orange-300 font-bold active:scale-90 shadow-md`}>⌫</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════════════ FLOATING PHYSICS ═══════════════ */
+const FloatingPhysics=()=>(
+  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div className="physics-float absolute top-12 left-8 text-7xl opacity-20">➕</div>
+    <div className="physics-float2 absolute top-40 right-12 text-6xl opacity-15">📐</div>
+    <div className="physics-float3 absolute bottom-52 left-16 text-8xl opacity-10">∑</div>
+    <div className="physics-float absolute bottom-32 right-20 text-5xl opacity-25">π</div>
+    <div className="physics-float2 absolute top-1/2 left-1/3 text-6xl opacity-20">∫</div>
+    <div className="physics-float3 absolute top-24 right-1/4 text-7xl opacity-15">📊</div>
+  </div>
+);
+
+/* ═══════════════ MAIN APP ═══════════════ */
+function App(){
+  const [screen,setScreen]=useState('welcome');
+  const [username,setUsername]=useState('');
+  const [savedUser,setSavedUser]=useState(localStorage.getItem('oauMthUsername')||'');
+
+  // Config
+  const [numQuestions,setNumQuestions]=useState(20);
+  const [duration,setDuration]=useState(45);
+  const [difficulty,setDifficulty]=useState('all'); // all | simple | medium | hard
+
+  // Test
+  const [testQuestions,setTestQuestions]=useState([]);
+  const [currentQ,setCurrentQ]=useState(0);
+  const [answers,setAnswers]=useState({});
+  const [endTime,setEndTime]=useState(null);
+  const [timeLeft,setTimeLeft]=useState(0);
+  const [showGrid,setShowGrid]=useState(false);
+  const [showSubmitConfirm,setShowSubmitConfirm]=useState(false);
+  const [showCalc,setShowCalc]=useState(false);
+  const [showQuitConfirm,setShowQuitConfirm]=useState(false);
+
+  // Leaderboard
+  const [leaderboard,setLeaderboard]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem('oauMthLeaderboard')||'[]');}
+    catch{return[];}
+  });
+  const [lbExpanded,setLbExpanded]=useState(false);
+  const [lbDropdown,setLbDropdown]=useState(false);
+
+  // Results
+  const [score,setScore]=useState(0);
+  const [timeTaken,setTimeTaken]=useState(0);
+  const [showReview,setShowReview]=useState(false);
+
+  const answersRef=useRef({});
+  const submittedRef=useRef(false);
+  const startTimeRef=useRef(null);
+  const testQRef=useRef([]);
+
+  useEffect(()=>{answersRef.current=answers;},[answers]);
+  useEffect(()=>{if(savedUser)setScreen('leaderboard');},[]);
+
+  // Filtered pool count
+  const filteredPool=useMemo(()=>{
+    if(difficulty==='all')return QUESTION_BANK;
+    return QUESTION_BANK.filter(q=>q.difficulty===difficulty);
+  },[difficulty]);
+
+  // Timer
+  useEffect(()=>{
+    if(screen!=='test'||!endTime||submittedRef.current)return;
+    const tick=()=>{
+      const rem=Math.max(0,Math.floor((endTime-Date.now())/1000));
+      setTimeLeft(rem);
+      if(rem<=0&&!submittedRef.current)doSubmit();
+    };
+    tick();
+    const id=setInterval(tick,1000);
+    return()=>clearInterval(id);
+  },[screen,endTime]);
+
+  const maxQ=filteredPool.length;
+  const qValid=numQuestions>=5&&numQuestions<=maxQ;
+  const tValid=duration>=1&&duration<=120;
+  const cantStart=!qValid||!tValid;
+
+  // Handlers
+  const handleLogin=e=>{
+    e.preventDefault();
+    if(!username.trim())return;
+    const u=username.trim();
+    localStorage.setItem('oauMthUsername',u);
+    setSavedUser(u);setScreen('leaderboard');
+  };
+  const logout=()=>{
+    localStorage.removeItem('oauMthUsername');
+    setSavedUser('');setUsername('');setScreen('welcome');
+  };
+  const startTest=()=>{
+    if(cantStart)return;
+    const pool=difficulty==='all'?QUESTION_BANK:QUESTION_BANK.filter(q=>q.difficulty===difficulty);
+    const cnt=Math.min(numQuestions,pool.length);
+    const qs=shuffleArray(pool).slice(0,cnt);
+    setTestQuestions(qs);testQRef.current=qs;
+    setCurrentQ(0);setAnswers({});answersRef.current={};
+    submittedRef.current=false;
+    const now=Date.now();startTimeRef.current=now;
+    setEndTime(now+duration*60*1000);setTimeLeft(duration*60);
+    setShowGrid(false);setShowSubmitConfirm(false);setShowReview(false);
+    setScreen('test');
+  };
+  const selectAnswer=(qi,oi)=>setAnswers(p=>({...p,[qi]:oi}));
+  const saveToLeaderboard=(user,sc,total,time,pct)=>{
+    const entry={name:user,score:sc,total,pct,time,date:new Date().toLocaleDateString()};
+    setLeaderboard(prev=>{
+      // Keep best score per user
+      const filtered=prev.filter(e=>e.name!==user);
+      const existing=prev.find(e=>e.name===user);
+      const keep=existing&&existing.pct>=pct?existing:entry;
+      const updated=[...filtered,keep].sort((a,b)=>b.pct-a.pct||a.time-b.time);
+      localStorage.setItem('oauMthLeaderboard',JSON.stringify(updated));
+      return updated;
+    });
+  };
+  const doSubmit=()=>{
+    if(submittedRef.current)return;
+    submittedRef.current=true;
+    const a=answersRef.current,qs=testQRef.current;
+    let c=0;qs.forEach((q,i)=>{if(a[i]===q.correct)c++;});
+    const timeTk=Math.floor((Date.now()-startTimeRef.current)/1000);
+    const pct=qs.length?Math.round((c/qs.length)*100):0;
+    setScore(c);
+    setTimeTaken(timeTk);
+    saveToLeaderboard(savedUser,c,qs.length,timeTk,pct);
+    setScreen('results');
+  };
+  const quitTest=()=>{
+    submittedRef.current=true;
+    setShowQuitConfirm(false);
+    setScreen('leaderboard');
+  };
+  const getRankInfo=(rank,total)=>{
+    if(total===0)return{msg:'Be the first on the board! 🚀',color:'text-green-400'};
+    const pct=((total-rank)/total)*100;
+    if(rank===1)return{msg:'👑 You\'re the TOP of the class!',color:'text-yellow-400'};
+    if(pct>=80)return{msg:'🔥 Elite tier — keep dominating!',color:'text-green-400'};
+    if(pct>=60)return{msg:'💪 Great work — push for the top!',color:'text-blue-400'};
+    if(pct>=40)return{msg:'📈 You\'re in the middle — step it up!',color:'text-cyan-400'};
+    if(pct>=20)return{msg:'⚡ You can do much better than this!',color:'text-amber-400'};
+    return{msg:'📚 Low rank — time to grind harder!',color:'text-red-400'};
+  };
+  const myRank=leaderboard.findIndex(e=>e.name===savedUser)+1;
+  const myEntry=leaderboard.find(e=>e.name===savedUser);
+  const blockKeys=e=>{if(['e','E','.','-','+'].includes(e.key))e.preventDefault();};
+
+  const diffColors={
+    all:{bg:'bg-green-600',ring:'ring-green-400',text:'text-green-300'},
+    simple:{bg:'bg-cyan-600',ring:'ring-cyan-400',text:'text-cyan-300'},
+    medium:{bg:'bg-yellow-500',ring:'ring-yellow-400',text:'text-yellow-300'},
+    hard:{bg:'bg-red-600',ring:'ring-red-400',text:'text-red-300'},
+  };
+
+  /* ═════════════ SCREENS ═════════════ */
+
+  // ── WELCOME ──
+  if(screen==='welcome')return(
+    <div className="min-h-screen flex items-center justify-center relative px-6">
+      <FloatingPhysics/>
+      <div className="text-center z-10">
+        <div className="text-[120px] mb-6" style={{filter:'drop-shadow(0 0 20px #22c55e) drop-shadow(0 0 40px #22c55e)'}}>📐</div>
+        <h1 className="text-6xl font-black text-white tracking-tighter mb-1">OAU MTH</h1>
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent">CBT 2026</h2>
+        <p className="text-green-300 text-2xl mt-3 mb-16">Obafemi Awolowo University</p>
+        <button onClick={()=>setScreen('login')} className="neon-glow block w-full max-w-xs mx-auto bg-gradient-to-r from-green-500 to-blue-600 text-white text-3xl font-bold py-8 rounded-3xl active:scale-95">
+          Start Test
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── LOGIN ──
+  if(screen==='login')return(
+    <div className="min-h-screen flex items-center justify-center relative px-6 overflow-y-auto">
+      <FloatingPhysics/>
+      <div className="glass border border-green-400/30 rounded-3xl p-10 w-full max-w-md z-10">
+        <div className="text-center">
+          <div className="text-[100px] mb-4" style={{filter:'drop-shadow(0 0 20px #22c55e)'}}>👤</div>
+          <h1 className="text-4xl font-bold text-white mb-10">Welcome</h1>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-8">
+          <div>
+            <label className="text-green-300 text-sm mb-3 block">USERNAME</label>
+            <input type="text" value={username} onChange={e=>setUsername(e.target.value)}
+              placeholder="e.g. DavidOladimeji" autoComplete="username"
+              className="w-full bg-slate-900 border border-green-400/30 rounded-2xl py-5 px-6 text-white text-xl focus:outline-none focus:border-green-400"/>
+          </div>
+          <button type="submit" className="neon-glow w-full bg-gradient-to-r from-green-500 to-blue-600 py-6 rounded-2xl text-2xl font-bold text-white active:scale-95">
+            CONTINUE
+          </button>
+        </form>
+        <p className="text-center text-white/40 mt-10 text-sm">100 Level • MTH101</p>
+      </div>
+    </div>
+  );
+
+  // ── LEADERBOARD ──
+  if(screen==='leaderboard'){
+    const rankInfo=myRank>0?getRankInfo(myRank,leaderboard.length):{msg:'No tests taken yet — go prove yourself! 🚀',color:'text-green-400'};
+    const medalFor=(rank)=>rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+    const rowColor=(rank)=>rank===1?'border-yellow-400/40 bg-yellow-400/5':rank===2?'border-slate-300/30 bg-slate-300/5':rank===3?'border-amber-600/30 bg-amber-600/5':'border-white/5 bg-white/0';
+    return(
+      <div className="min-h-screen overflow-y-auto relative px-4 py-8">
+        <FloatingPhysics/>
+        <div className="z-10 relative max-w-md mx-auto">
+
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-black text-white">🏆 Leaderboard</h1>
+              <p className="text-green-400 text-sm mt-1">OAU MTH101 • 2026</p>
+            </div>
+            <button onClick={logout} className="text-white/40 hover:text-white text-sm underline">Logout</button>
+          </div>
+
+          {/* My Rank Card */}
+          {savedUser&&(
+            <div className="glass border border-green-400/30 rounded-3xl p-6 mb-6 rank-pop">
+              <p className="text-white/60 text-sm mb-1">Logged in as <span className="text-green-400 font-bold">{savedUser}</span></p>
+              {myRank>0?(
+                <>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="text-center">
+                      <p className="text-7xl font-black text-white leading-none">#{myRank}</p>
+                      <p className="text-white/50 text-xs">of {leaderboard.length}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold text-xl">{myEntry?.pct}% best score</p>
+                      <p className="text-white/60 text-sm">{myEntry?.score}/{myEntry?.total} correct</p>
+                      <p className="text-white/40 text-xs mt-1">Last: {myEntry?.date}</p>
+                    </div>
+                  </div>
+                  <p className={`font-bold text-lg ${rankInfo.color}`}>{rankInfo.msg}</p>
+                </>
+              ):(
+                <p className={`font-bold text-lg mt-2 ${rankInfo.color}`}>{rankInfo.msg}</p>
+              )}
+            </div>
+          )}
+
+          {/* Leaderboard Panel */}
+          <div className="glass border border-green-400/20 rounded-3xl overflow-hidden mb-6">
+            {/* Top 3 always visible */}
+            <div className="p-4 border-b border-white/10">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-white/60 text-sm font-bold uppercase tracking-wider">Rankings</p>
+                {leaderboard.length>3&&(
+                  <button onClick={()=>setLbExpanded(e=>!e)}
+                    className="text-green-400 text-sm font-bold flex items-center gap-1 active:scale-95">
+                    {lbExpanded?'▲ Show less':'▼ Show all '+leaderboard.length}
+                  </button>
+                )}
+              </div>
+              {leaderboard.length===0&&(
+                <p className="text-white/40 text-center py-4 text-sm">No scores yet. Be the first! 🎯</p>
+              )}
+              {leaderboard.slice(0,3).map((entry,i)=>(
+                <div key={entry.name} className={`lb-row flex items-center gap-3 p-3 rounded-2xl border mb-2 ${rowColor(i+1)} ${entry.name===savedUser?'ring-1 ring-green-400/50':''}`}
+                  style={{animationDelay:`${i*80}ms`}}>
+                  <span className="text-2xl w-8 text-center">{medalFor(i+1)||`#${i+1}`}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold truncate ${entry.name===savedUser?'text-green-400':'text-white'}`}>{entry.name}{entry.name===savedUser?' (you)':''}</p>
+                    <p className="text-white/50 text-xs">{entry.score}/{entry.total} correct • {entry.date}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-white font-black text-lg">{entry.pct}%</p>
+                    <p className="text-white/40 text-xs">{formatTime(entry.time)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Expanded rows */}
+            {lbExpanded&&leaderboard.length>3&&(
+              <div className="p-4 pt-2">
+                {leaderboard.slice(3).map((entry,i)=>(
+                  <div key={entry.name} className={`lb-row flex items-center gap-3 p-3 rounded-2xl border mb-2 border-white/5 ${entry.name===savedUser?'ring-1 ring-green-400/50 bg-green-400/5':''}`}
+                    style={{animationDelay:`${i*60}ms`}}>
+                    <span className="text-white/50 w-8 text-center font-bold">#{i+4}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-bold truncate ${entry.name===savedUser?'text-green-400':'text-white'}`}>{entry.name}{entry.name===savedUser?' (you)':''}</p>
+                      <p className="text-white/50 text-xs">{entry.score}/{entry.total} correct • {entry.date}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-white font-black text-lg">{entry.pct}%</p>
+                      <p className="text-white/40 text-xs">{formatTime(entry.time)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Dropdown: select name to view their rank */}
+          <div className="glass border border-green-400/20 rounded-3xl p-5 mb-8">
+            <p className="text-white/60 text-sm font-bold uppercase tracking-wider mb-3">🔍 Look up a student</p>
+            <select onChange={e=>{
+                const found=leaderboard.find(x=>x.name===e.target.value);
+                if(!found)return;
+                const rank=leaderboard.findIndex(x=>x.name===e.target.value)+1;
+                const ri=getRankInfo(rank,leaderboard.length);
+                alert(`${found.name}\nRank: #${rank} of ${leaderboard.length}\nBest: ${found.pct}% (${found.score}/${found.total})\n${ri.msg}`);
+              }}
+              defaultValue=""
+              className="w-full bg-slate-800 border border-green-400/20 rounded-2xl py-4 px-4 text-white text-lg focus:outline-none focus:border-green-400 appearance-none">
+              <option value="" disabled>Select a name...</option>
+              {leaderboard.map((e,i)=>(
+                <option key={e.name} value={e.name}>#{i+1} — {e.name} ({e.pct}%)</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Take Test Button */}
+          <button onClick={()=>setScreen('config')}
+            className="neon-glow w-full py-8 rounded-3xl text-3xl font-black text-white active:scale-95 bg-gradient-to-r from-green-500 to-blue-600 mb-4">
+            🎯 Take a Test
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── CONFIG ──
+  if(screen==='config')return(
+    <div className="min-h-screen overflow-y-auto relative px-6 py-10">
+      <FloatingPhysics/>
+      <div className="z-10 relative max-w-md mx-auto">
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-4">
+            <div className="text-5xl">✅</div>
+            <div>
+              <p className="text-green-400 text-lg">READY TO TEST</p>
+              <h1 className="text-3xl font-bold text-white">Hi, {savedUser}</h1>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <button onClick={()=>setScreen('leaderboard')} className="text-green-400 hover:text-green-300 text-sm font-bold">🏆 Leaderboard</button>
+            <button onClick={logout} className="text-white/40 hover:text-white underline text-sm">Logout</button>
+          </div>
+        </div>
+        <div className="glass border border-green-400/20 rounded-3xl p-8">
+          <h2 className="text-3xl font-semibold text-white mb-10 text-center">Configure Test</h2>
+
+          {/* ── Difficulty Selector ── */}
+          <div className="mb-10">
+            <p className="text-green-300 text-xl font-medium mb-4">Difficulty Level</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                {key:'all',label:'All',emoji:''},
+                {key:'simple',label:'SIMPLE',emoji:''},
+                {key:'medium',label:'MEDIUM',emoji:''},
+                {key:'hard',label:'HARD',emoji:''},
+              ].map(d=>(
+                <button key={d.key}
+                  onClick={()=>{
+                    setDifficulty(d.key);
+                    const pool=d.key==='all'?QUESTION_BANK:QUESTION_BANK.filter(q=>q.difficulty===d.key);
+                    if(numQuestions>pool.length)setNumQuestions(Math.max(5,pool.length));
+                  }}
+                  className={`diff-btn py-3 px-2 rounded-xl text-center font-bold text-sm border-2 transition-all ${difficulty===d.key?`${diffColors[d.key].bg} border-white/40 text-white active ring-2 ${diffColors[d.key].ring}`:'bg-slate-800 border-slate-700 text-white/60'}`}>
+                  <div className="text-lg mb-1">{d.emoji}</div>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-white/50 text-sm text-center mt-3">{filteredPool.length} questions available</p>
+          </div>
+
+          {/* Questions */}
+          <div className="mb-14">
+            <p className="text-green-300 text-xl font-medium mb-5">Number of Questions</p>
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={()=>setNumQuestions(q=>Math.max(5,q-1))} className="neon-glow stepper-btn bg-slate-800 text-white rounded-3xl active:scale-90" aria-label="Decrease questions">−</button>
+              <input type="number" value={numQuestions}
+                onChange={e=>{const v=parseInt(e.target.value);if(!isNaN(v))setNumQuestions(Math.max(1,Math.min(maxQ,v)));}}
+                onBlur={()=>{if(numQuestions<5)setNumQuestions(5);if(numQuestions>maxQ)setNumQuestions(maxQ);}}
+                onKeyDown={blockKeys}
+                className="text-7xl font-bold text-white w-36 text-center bg-transparent focus:outline-none"/>
+              <button onClick={()=>setNumQuestions(q=>Math.min(maxQ,q+1))} className="neon-glow stepper-btn bg-slate-800 text-white rounded-3xl active:scale-90" aria-label="Increase questions">+</button>
+            </div>
+            {!qValid&&<p className="text-red-400 text-center mt-4 font-medium">Choose 5 – {maxQ} questions</p>}
+          </div>
+
+          {/* Duration */}
+          <div>
+            <p className="text-green-300 text-xl font-medium mb-5">Duration (minutes)</p>
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={()=>setDuration(d=>Math.max(1,d-1))} className="neon-glow stepper-btn bg-slate-800 text-white rounded-3xl active:scale-90" aria-label="Decrease duration">−</button>
+              <input type="number" value={duration}
+                onChange={e=>{const v=parseInt(e.target.value);if(!isNaN(v))setDuration(Math.max(1,Math.min(120,v)));}}
+                onBlur={()=>{if(duration<1)setDuration(1);}}
+                onKeyDown={blockKeys}
+                className="text-7xl font-bold text-white w-36 text-center bg-transparent focus:outline-none"/>
+              <button onClick={()=>setDuration(d=>Math.min(120,d+1))} className="neon-glow stepper-btn bg-slate-800 text-white rounded-3xl active:scale-90" aria-label="Increase duration">+</button>
+            </div>
+            <p className="text-center text-xl text-white/60 mt-4">{duration>=60?`${Math.floor(duration/60)}h ${duration%60}m`:`${duration} min`}</p>
+            {!tValid&&<p className="text-red-400 text-center mt-4 font-medium">1 – 120 minutes only</p>}
+          </div>
+        </div>
+
+        <button onClick={startTest} disabled={cantStart}
+          className={`mt-12 w-full py-8 rounded-3xl text-3xl font-black text-white active:scale-95 ${cantStart?'bg-gray-700 opacity-50 cursor-not-allowed':'neon-glow bg-gradient-to-r from-green-500 to-blue-600'}`}>
+          {cantStart?'FIX ERRORS ABOVE':' BEGIN TEST'}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── TEST ──
+  if(screen==='test'){
+    if(!testQuestions.length)return null;
+    const q=testQuestions[currentQ];
+    const answered=Object.keys(answers).length;
+    const low=timeLeft<=60,warn=timeLeft<=300&&timeLeft>60;
+    const diffBadge=q.difficulty;
+    const badgeColor=diffBadge==='simple'?'bg-emerald-500/20 text-emerald-400 border-emerald-500/30':diffBadge==='medium'?'bg-amber-500/20 text-amber-400 border-amber-500/30':'bg-red-500/20 text-red-400 border-red-500/30';
+
+    return(
+      <div className="min-h-screen flex flex-col relative">
+        <FloatingPhysics/>
+
+        {/* Top Bar */}
+        <div className="sticky top-0 z-30 glass border-b border-green-400/20">
+          <div className="flex justify-between items-center px-5 py-4 max-w-lg mx-auto">
+            <span className={`font-mono text-xl font-bold ${low?'timer-warning':warn?'text-yellow-400':'text-green-400'}`}>⏱ {formatTime(timeLeft)}</span>
+            <span className="text-white/80 font-medium">Q {currentQ+1} / {testQuestions.length}</span>
+            <div className="flex items-center gap-3">
+              <button onClick={()=>setShowCalc(true)} className="text-yellow-400 text-2xl px-1" aria-label="Open calculator" title="Calculator"><img src="Calculate.png" alt="" className = "w-8 h-8 object-contain" /></button>
+              <button onClick={()=>setShowGrid(true)} className="text-green-400 text-2xl px-2" aria-label="Open question navigator">☰</button>
+              <button onClick={()=>setShowQuitConfirm(true)} className="text-red-400 text-2xl px-1" aria-label="Quit test" title="Quit">✕</button>
+            </div>
+          </div>
+          <div className="h-1 bg-slate-800"><div className="h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-300" style={{width:`${(answered/testQuestions.length)*100}%`}}/></div>
+        </div>
+
+        {/* Question */}
+        <div className="flex-1 overflow-y-auto z-10">
+          <div className="px-6 py-8 max-w-lg mx-auto">
+            {/* Difficulty Badge */}
+            <div className="mb-4">
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold border ${badgeColor} capitalize`}>{diffBadge}</span>
+              {q.topic&&<span className="inline-block ml-2 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30 bg-green-500/10 text-green-300">{q.topic}</span>}
+            </div>
+
+            <p className="text-white text-xl font-medium leading-relaxed mb-8">
+              <span className="text-green-400 font-bold mr-1">{currentQ+1}.</span><RenderMath text={q.question}/>
+            </p>
+
+            <div className="space-y-4 mb-10">
+              {q.options.map((opt,i)=>{
+                const letter=['A','B','C','D'][i];
+                const sel=answers[currentQ]===i;
+                return(
+                  <button key={i} onClick={()=>selectAnswer(currentQ,i)}
+                    className={`option-btn w-full text-left p-5 rounded-2xl border-2 flex items-center gap-4 ${sel?'border-green-400 bg-green-400/10 text-white':'border-slate-700 bg-slate-800/50 text-white/80'}`}>
+                    <span className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${sel?'bg-green-500 text-white':'bg-slate-700 text-white/60'}`}>{letter}</span>
+                    <span className="text-lg"><RenderMath text={opt}/></span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-4 mb-6">
+              <button disabled={currentQ===0} onClick={()=>setCurrentQ(p=>p-1)}
+                className={`flex-1 py-4 rounded-2xl font-bold text-lg ${currentQ===0?'bg-slate-800/50 text-slate-600 cursor-not-allowed':'bg-slate-700 text-white active:scale-95'}`}>← Prev</button>
+              <button disabled={currentQ===testQuestions.length-1} onClick={()=>setCurrentQ(p=>p+1)}
+                className={`flex-1 py-4 rounded-2xl font-bold text-lg ${currentQ===testQuestions.length-1?'bg-slate-800/50 text-slate-600 cursor-not-allowed':'bg-slate-700 text-white active:scale-95'}`}>Next →</button>
+            </div>
+
+            <button onClick={()=>setShowSubmitConfirm(true)}
+              className="green-glow w-full py-5 rounded-2xl bg-gradient-to-r from-yellow-400 to-green-500 text-white font-bold text-xl active:scale-95 mb-8">
+              Submit Test ({answered}/{testQuestions.length})
+            </button>
+          </div>
+        </div>
+
+        {/* Calculator Modal */}
+        {showCalc&&<Calculator onClose={()=>setShowCalc(false)}/>}
+
+        {/* Grid Modal */}
+        {showGrid&&(
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center" onClick={()=>setShowGrid(false)}>
+            <div className="glass border-t sm:border border-green-400/20 rounded-t-3xl sm:rounded-3xl p-8 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white">Question Navigator</h3>
+                <button onClick={()=>setShowGrid(false)} className="text-white/60 text-3xl" aria-label="Close navigator">✕</button>
+              </div>
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {testQuestions.map((_,i)=>{
+                  const done=answers[i]!==undefined,cur=i===currentQ;
+                  return(
+                    <button key={i} onClick={()=>{setCurrentQ(i);setShowGrid(false);}}
+                      className={`aspect-square rounded-xl flex items-center justify-center text-lg font-bold transition-all ${cur?'bg-green-500 text-white ring-2 ring-green-300':done?'bg-yellow-500/80 text-white':'bg-slate-700 text-white/60'}`}>
+                      {i+1}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-4 text-sm text-white/60 justify-center mb-4">
+                <span className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-yellow-500 inline-block"></span>Answered</span>
+                <span className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-slate-700 inline-block"></span>Unanswered</span>
+                <span className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-green-500 inline-block"></span>Current</span>
+              </div>
+              <p className="text-white/60 text-center">{answered} of {testQuestions.length} answered</p>
+            </div>
+          </div>
+        )}
+
+        {/* Submit Confirm */}
+        {showSubmitConfirm&&(
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-6">
+            <div className="glass border border-green-400/20 rounded-3xl p-8 w-full max-w-sm text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Submit Test?</h3>
+              <p className="text-white/70 mb-6">
+                {answered} of {testQuestions.length} answered.
+                {answered<testQuestions.length&&<span className="text-amber-400 block mt-2">{testQuestions.length-answered} question{testQuestions.length-answered>1?'s':''} unanswered!</span>}
+              </p>
+              <div className="space-y-3">
+                <button onClick={()=>{setShowSubmitConfirm(false);doSubmit();}}
+                  className="green-glow w-full py-4 rounded-2xl bg-gradient-to-r from-yellow-400 to-green-500 text-white font-bold text-lg active:scale-95">Yes, Submit</button>
+                <button onClick={()=>setShowSubmitConfirm(false)}
+                  className="w-full py-4 rounded-2xl bg-slate-700 text-white font-bold text-lg active:scale-95">Go Back</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quit Confirm */}
+        {showQuitConfirm&&(
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-6">
+            <div className="glass border border-red-500/30 rounded-3xl p-8 w-full max-w-sm text-center">
+              <div className="text-6xl mb-4">🚪</div>
+              <h3 className="text-2xl font-bold text-white mb-2">Quit Test?</h3>
+              <p className="text-white/70 mb-2">Your progress will <span className="text-red-400 font-bold">NOT</span> be saved.</p>
+              <p className="text-white/50 text-sm mb-6">You'll return to the leaderboard.</p>
+              <div className="space-y-3">
+                <button onClick={quitTest}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg active:scale-95">Yes, Quit</button>
+                <button onClick={()=>setShowQuitConfirm(false)}
+                  className="w-full py-4 rounded-2xl bg-slate-700 text-white font-bold text-lg active:scale-95">Keep Going 💪</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── RESULTS ──
+  if(screen==='results'){
+    const pct=testQuestions.length?Math.round((score/testQuestions.length)*100):0;
+    const{grade,label,emoji}=getGrade(pct);
+    const answered=Object.keys(answers).length;
+
+    return(
+      <div className="min-h-screen overflow-y-auto relative px-6 py-10">
+        <FloatingPhysics/>
+        <div className="z-10 relative max-w-lg mx-auto">
+
+          <div className="glass border border-green-400/20 rounded-3xl p-8 text-center mb-8 score-pop">
+            <div className="text-8xl mb-4">{emoji}</div>
+            <h1 className="text-5xl font-black text-white mb-2">{score} / {testQuestions.length}</h1>
+            <div className="text-4xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent mb-2">{pct}%</div>
+            <p className="text-2xl text-white/80">Grade: <span className="font-bold text-white">{grade}</span> — {label}</p>
+            <div className="mt-6 pt-6 border-t border-white/10 flex justify-center gap-8 text-white/60">
+              <div><p className="text-2xl font-bold text-white">{formatTime(timeTaken)}</p><p className="text-sm">Time</p></div>
+              <div><p className="text-2xl font-bold text-white">{answered}</p><p className="text-sm">Attempted</p></div>
+              <div><p className="text-2xl font-bold text-emerald-400">{score}</p><p className="text-sm">Correct</p></div>
+            </div>
+          </div>
+
+          <div className="space-y-4 mb-8">
+            <button onClick={()=>setScreen('leaderboard')}
+              className="neon-glow w-full py-5 rounded-2xl bg-gradient-to-r from-yellow-400 to-green-500 text-white font-bold text-xl active:scale-95">
+              🏆 View Leaderboard
+            </button>
+            <button onClick={()=>setShowReview(r=>!r)}
+              className="w-full py-5 rounded-2xl bg-slate-800 border border-green-400/20 text-white font-bold text-xl active:scale-95">
+              {showReview?'▲ Hide Review':'▼ Review Answers'}
+            </button>
+            <button onClick={()=>setScreen('config')}
+              className="neon-glow w-full py-5 rounded-2xl bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold text-xl active:scale-95">
+              🔄 Take Another Test
+            </button>
+            <button onClick={logout}
+              className="w-full py-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white/60 font-bold text-lg active:scale-95">
+              Logout
+            </button>
+          </div>
+
+          {showReview&&(
+            <div className="space-y-4 pb-10">
+              {testQuestions.map((q,i)=>{
+                const ua=answers[i],correct=ua===q.correct,unanswered=ua===undefined;
+                const diffBadge=q.difficulty;
+                const bc=diffBadge==='simple'?'text-emerald-400':diffBadge==='medium'?'text-amber-400':'text-red-400';
+                return(
+                  <div key={i} className={`glass rounded-2xl p-5 border ${correct?'border-emerald-500/30':'border-red-500/30'}`}>
+                    <div className="flex items-start gap-3 mb-1">
+                      <span className="text-xl shrink-0">{correct?'✅':unanswered?'⬜':'❌'}</span>
+                      <p className="text-white font-medium">{i+1}. <RenderMath text={q.question}/></p>
+                    </div>
+                    <p className={`ml-9 text-xs mb-2 ${bc} capitalize`}>[ {diffBadge} — {q.topic} ]</p>
+                    {!unanswered&&!correct&&(
+                      <p className="text-red-400 ml-9 text-sm">Your answer: {['A','B','C','D'][ua]} — <RenderMath text={q.options[ua]}/></p>
+                    )}
+                    {unanswered&&<p className="text-amber-400 ml-9 text-sm">Not answered</p>}
+                    <p className="text-emerald-400 ml-9 text-sm">Correct: {['A','B','C','D'][q.correct]} — <RenderMath text={q.options[q.correct]}/></p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
